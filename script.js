@@ -1,13 +1,12 @@
 // ===== Helpers =====
 const $ = (s) => document.querySelector(s);
 
-// Small loading hint in the city label
 function setLoading(msg = "Loading...") {
   const el = $('#place');
   if (el) el.textContent = msg;
 }
 
-// Map WMO code -> short description
+// ===== Maps =====
 const codeToDesc = (code) => {
   const map = {
     0:'Clear', 1:'Mainly clear', 2:'Partly cloudy', 3:'Overcast',
@@ -25,7 +24,7 @@ const codeToDesc = (code) => {
   return map[code] || '—';
 };
 
-// ===== Icons (Meteocons) =====
+// ===== Icons =====
 const codeToMeteocon = (code, isDay=true) => {
   if (code === 0) return isDay ? 'clear-day' : 'clear-night';
   if ([1,2].includes(code)) return isDay ? 'partly-cloudy-day' : 'partly-cloudy-night';
@@ -40,14 +39,14 @@ const codeToMeteocon = (code, isDay=true) => {
 const meteoconURL = (name) =>
   `https://cdn.jsdelivr.net/gh/basmilius/weather-icons/production/fill/all/${name}.svg`;
 
-// Comfort texts
+// ===== Comfort texts =====
 const humComfort = (h) => h < 30 ? 'Dry' : (h <= 60 ? 'Comfortable' : 'Humid');
 const visText = (km) => km >= 10 ? 'Excellent visibility' : (km >= 5 ? 'Good' : (km >= 2 ? 'Moderate' : 'Poor'));
 const windText = (k) => k < 6 ? 'Calm' : (k < 20 ? 'Breezy' : (k < 38 ? 'Windy' : 'Gale'));
 const aqiText = (v) => v==null ? '—' : v<=50?'Good':v<=100?'Moderate':v<=150?'Unhealthy (SG)':v<=200?'Unhealthy':v<=300?'Very Unhealthy':'Hazardous';
 const fmtDateLong = (iso) => new Date(iso).toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
 
-// Themes (use your CSS theme classes)
+// ===== Themes =====
 const codeToTheme = (code, isDay) => {
   if (!isDay) return 'theme-night';
   if (code === 0) return 'theme-clear';
@@ -58,7 +57,6 @@ const codeToTheme = (code, isDay) => {
   if ([95,96,99].includes(code)) return 'theme-thunder';
   return 'theme-cloudy';
 };
-
 function setTheme(code, isDay){
   document.body.className = document.body.className
     .split(' ')
@@ -80,9 +78,12 @@ async function reverseGeocode(lat, lon){
     const u = `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=en&format=json`;
     const r = await fetch(u).then(x=>x.json());
     const g = r?.results?.[0];
-    return g ? `${g.name}${g.admin1?`, ${g.admin1}`:''}${g.country?`, ${g.country}`:''}` : `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+    return {
+      name: g?.name || g?.admin1 || g?.country || `${lat.toFixed(2)}, ${lon.toFixed(2)}`,
+      lat, lon
+    };
   } catch {
-    return `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+    return { name: `${lat.toFixed(2)}, ${lon.toFixed(2)}`, lat, lon };
   }
 }
 async function fetchWeather(lat, lon){
@@ -103,7 +104,6 @@ async function fetchAQI(lat, lon){
   url.search = new URLSearchParams({ latitude: lat, longitude: lon, hourly: 'us_aqi', timezone: 'auto' });
   return await fetch(url).then(x=>x.json());
 }
-
 function closestHourIdx(times, targetISO){
   const arr = Array.isArray(times) ? times : [];
   if (!arr.length || !targetISO) return 0;
@@ -121,7 +121,6 @@ function setNowIcon(code, isDay, el){
   const name = codeToMeteocon(code, isDay);
   el.innerHTML = `<img src="${meteoconURL(name)}" alt="${codeToDesc(code)}" />`;
 }
-
 function setForecastIcons(daily, wrap){
   wrap.innerHTML = '';
   const daysAvailable = Math.max(
@@ -174,7 +173,7 @@ async function updateAll(place){
 
     $('#place').textContent = name ?? '—';
     $('#nowTemp').textContent = Number.isFinite(c.temperature_2m) ? `${Math.round(c.temperature_2m)}°C` : '—';
-    $('#feels').textContent = Number.isFinite(c.apparent_temperature) ? `${Math.round(c.apparent_temperature)}°C` : '—';
+    $('#feels').textContent = Number.isFinite(c.apparent_temperature) ? `Feels like ${Math.round(c.apparent_temperature)}°C` : '—';
     $('#hum').textContent = Number.isFinite(c.relative_humidity_2m) ? `${Math.round(c.relative_humidity_2m)}%` : '—';
     $('#humText').textContent = Number.isFinite(c.relative_humidity_2m) ? humComfort(c.relative_humidity_2m) : '—';
     $('#press').textContent = Number.isFinite(c.pressure_msl) ? `${Math.round(c.pressure_msl)} mb` : '—';
@@ -197,7 +196,7 @@ async function updateAll(place){
     if (name) localStorage.setItem("lastCity", name);
   }catch(err){
     console.error('[updateAll] failed:', err);
-    $('#place').textContent = "⚠️ Error loading weather";
+    $('#place').textContent = "Error loading weather";
   }
 }
 
@@ -211,7 +210,7 @@ async function search(){
     updateAll(p);
   } catch(e){
     console.error('[search] geocode failed:', e);
-    $('#place').textContent = "❌ City not found";
+    $('#place').textContent = "City not found";
   }
 }
 $('#go').addEventListener('click', search);
@@ -220,20 +219,27 @@ $('#q').addEventListener('keydown', (e)=>{ if(e.key==='Enter') search(); });
 // ===== Init: Last city > Location > Mumbai =====
 (async function init(){
   try{
-    setLoading("Detecting location...");
     const last = localStorage.getItem("lastCity");
     if (last) {
       const p = await geocodeCity(last);
       updateAll(p);
       return;
     }
+
+    setLoading("Detecting location...");
     if (navigator.geolocation){
       navigator.geolocation.getCurrentPosition(async (pos)=>{
-        const lat = pos.coords.latitude, lon = pos.coords.longitude;
-        const name = await reverseGeocode(lat, lon);
-        updateAll({lat, lon, name});
+        try {
+          const lat = pos.coords.latitude, lon = pos.coords.longitude;
+          const p = await reverseGeocode(lat, lon);
+          updateAll(p);
+        } catch(e){
+          console.warn('[reverseGeocode failed]', e);
+          const p = await geocodeCity('Mumbai');
+          updateAll(p);
+        }
       }, async (err)=>{
-        console.warn('[geolocation] failed:', err);
+        console.warn('[geolocation denied]', err);
         const p = await geocodeCity('Mumbai');
         updateAll(p);
       }, { timeout: 15000, enableHighAccuracy: true, maximumAge: 60000 });
@@ -241,5 +247,9 @@ $('#q').addEventListener('keydown', (e)=>{ if(e.key==='Enter') search(); });
       const p = await geocodeCity('Mumbai');
       updateAll(p);
     }
-  }catch(e){ console.error('[init] failed:', e); }
+  }catch(e){ 
+    console.error('[init] failed:', e); 
+    const p = await geocodeCity('Mumbai');
+    updateAll(p);
+  }
 })();
