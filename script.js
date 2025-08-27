@@ -25,19 +25,33 @@ const codeToDesc = (code) => {
 };
 
 // ===== Icons =====
+
+
+
+
+// ===== Icons =====
 const codeToMeteocon = (code, isDay=true) => {
   if (code === 0) return isDay ? 'clear-day' : 'clear-night';
   if ([1,2].includes(code)) return isDay ? 'partly-cloudy-day' : 'partly-cloudy-night';
   if (code === 3) return 'overcast';
   if ([45,48].includes(code)) return 'fog';
   if ([51,53,55,56,57].includes(code)) return 'drizzle';
-  if ([61,63,65,66,67,80,81,82].includes(code)) return 'rain';
-  if ([71,73,75,77,85,86].includes(code)) return 'snow';
-  if ([95,96,99].includes(code)) return 'thunderstorms';
+  if ([61].includes(code)) return 'light-rain';
+  if ([63,65].includes(code)) return 'rain';
+  if ([66,67].includes(code)) return 'freezing-rain';
+  if ([80].includes(code)) return 'rain-showers';
+  if ([81,82].includes(code)) return 'heavy-rain-showers';
+  if ([71,73].includes(code)) return 'snow';
+  if ([75,85,86].includes(code)) return 'heavy-snow';
+  if ([77].includes(code)) return 'snow-grains';
+  if ([95,96,99].includes(code)) return 'thunderstorm';
   return 'na';
 };
-const meteoconURL = (name) =>
-  `https://cdn.jsdelivr.net/gh/basmilius/weather-icons/production/fill/all/${name}.svg`;
+
+
+// point to local folder
+const meteoconURL = (name) => `./icons/${name}.svg/${name}.svg`;
+
 
 // ===== Comfort texts =====
 const humComfort = (h) => h < 30 ? 'Dry' : (h <= 60 ? 'Comfortable' : 'Humid');
@@ -45,6 +59,8 @@ const visText = (km) => km >= 10 ? 'Excellent visibility' : (km >= 5 ? 'Good' : 
 const windText = (k) => k < 6 ? 'Calm' : (k < 20 ? 'Breezy' : (k < 38 ? 'Windy' : 'Gale'));
 const aqiText = (v) => v==null ? '—' : v<=50?'Good':v<=100?'Moderate':v<=150?'Unhealthy (SG)':v<=200?'Unhealthy':v<=300?'Very Unhealthy':'Hazardous';
 const fmtDateLong = (iso) => new Date(iso).toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
+
+
 
 // ===== Themes =====
 const codeToTheme = (code, isDay) => {
@@ -66,13 +82,39 @@ function setTheme(code, isDay){
 }
 
 // ===== APIs =====
-async function geocodeCity(q){
-  const u = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=en&format=json`;
-  const r = await fetch(u).then(x=>x.json());
-  if (!r?.results?.length) throw new Error('Place not found');
-  const g = r.results[0];
-  return { name: `${g.name}${g.admin1?`, ${g.admin1}`:''}${g.country?`, ${g.country}`:''}`, lat: g.latitude, lon: g.longitude };
+async function geocodeCity(city) {
+  try {
+    const response = await fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=10&language=en&format=json`
+    );
+    const data = await response.json();
+
+    if (data && data.results && data.results.length > 0) {
+      const indianResult = data.results.find(r => r.country_code === "IN");
+      return indianResult || data.results[0];
+    }
+
+    const alt = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}`
+    );
+    const altData = await alt.json();
+
+    if (altData.length === 0) {
+      throw new Error("Place not found in any geocoder");
+    }
+
+    return {
+      latitude: parseFloat(altData[0].lat),
+      longitude: parseFloat(altData[0].lon),
+      name: altData[0].display_name,
+      country_code: altData[0].address?.country_code?.toUpperCase() || "XX",
+    };
+  } catch (err) {
+    console.error("Geocoding failed:", err);
+    throw err;
+  }
 }
+
 async function reverseGeocode(lat, lon){
   try {
     const u = `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=en&format=json`;
@@ -86,6 +128,7 @@ async function reverseGeocode(lat, lon){
     return { name: `${lat.toFixed(2)}, ${lon.toFixed(2)}`, lat, lon };
   }
 }
+
 async function fetchWeather(lat, lon){
   const url = new URL('https://api.open-meteo.com/v1/forecast');
   url.search = new URLSearchParams({
@@ -99,11 +142,13 @@ async function fetchWeather(lat, lon){
   });
   return await fetch(url).then(x=>x.json());
 }
+
 async function fetchAQI(lat, lon){
   const url = new URL('https://air-quality-api.open-meteo.com/v1/air-quality');
   url.search = new URLSearchParams({ latitude: lat, longitude: lon, hourly: 'us_aqi', timezone: 'auto' });
   return await fetch(url).then(x=>x.json());
 }
+
 function closestHourIdx(times, targetISO){
   const arr = Array.isArray(times) ? times : [];
   if (!arr.length || !targetISO) return 0;
@@ -121,13 +166,16 @@ function setNowIcon(code, isDay, el){
   const name = codeToMeteocon(code, isDay);
   el.innerHTML = `<img src="${meteoconURL(name)}" alt="${codeToDesc(code)}" />`;
 }
+
+
 function setForecastIcons(daily, wrap){
   wrap.innerHTML = '';
   const daysAvailable = Math.max(
     0,
     Math.min(5, (daily?.time?.length || 0) - 1)
   );
-  for (let i=1; i<=daysAvailable; i++){
+  for (let i=0; i<daysAvailable; i++){   // start from today
+
     const date = daily.time[i];
     const code = daily.weather_code?.[i];
     const iconName = codeToMeteocon(code ?? 0, true);
@@ -192,8 +240,10 @@ async function updateAll(place){
 
     if (w?.daily) setForecastIcons(w.daily, $('#forecast'));
 
-    // ✅ Save last city
-    if (name) localStorage.setItem("lastCity", name);
+    // ✅ Save last city with coords
+    if (name) {
+      localStorage.setItem("lastCity", JSON.stringify({ name, lat, lon }));
+    }
   }catch(err){
     console.error('[updateAll] failed:', err);
     $('#place').textContent = "Error loading weather";
@@ -207,7 +257,7 @@ async function search(){
   setLoading(`Searching "${q}"...`);
   try {
     const p = await geocodeCity(q);
-    updateAll(p);
+    updateAll({ name: p.name, lat: p.latitude, lon: p.longitude });
   } catch(e){
     console.error('[search] geocode failed:', e);
     $('#place').textContent = "City not found";
@@ -221,9 +271,11 @@ $('#q').addEventListener('keydown', (e)=>{ if(e.key==='Enter') search(); });
   try{
     const last = localStorage.getItem("lastCity");
     if (last) {
-      const p = await geocodeCity(last);
-      updateAll(p);
-      return;
+      const parsed = JSON.parse(last);
+      if (parsed?.lat && parsed?.lon) {
+        updateAll(parsed);
+        return;
+      }
     }
 
     setLoading("Detecting location...");
@@ -236,20 +288,20 @@ $('#q').addEventListener('keydown', (e)=>{ if(e.key==='Enter') search(); });
         } catch(e){
           console.warn('[reverseGeocode failed]', e);
           const p = await geocodeCity('Mumbai');
-          updateAll(p);
+          updateAll({ name: p.name, lat: p.latitude, lon: p.longitude });
         }
       }, async (err)=>{
         console.warn('[geolocation denied]', err);
         const p = await geocodeCity('Mumbai');
-        updateAll(p);
+        updateAll({ name: p.name, lat: p.latitude, lon: p.longitude });
       }, { timeout: 15000, enableHighAccuracy: true, maximumAge: 60000 });
     } else {
       const p = await geocodeCity('Mumbai');
-      updateAll(p);
+      updateAll({ name: p.name, lat: p.latitude, lon: p.longitude });
     }
   }catch(e){ 
     console.error('[init] failed:', e); 
     const p = await geocodeCity('Mumbai');
-    updateAll(p);
+    updateAll({ name: p.name, lat: p.latitude, lon: p.longitude });
   }
 })();

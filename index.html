@@ -34,24 +34,92 @@
         </div>
       </div>
 
-      <!-- Stats -->
-      <div class="stats grid">
-        <div class="card"><h4>Humidity</h4><div class="value" id="hum">—</div><div class="muted" id="humText"></div></div>
-        <div class="card"><h4>Pressure</h4><div class="value" id="press">—</div><div class="muted">Normal pressure</div></div>
-        <div class="card"><h4>Visibility</h4><div class="value" id="vis">—</div><div class="muted" id="visText"></div></div>
-        <div class="card"><h4>Wind Speed</h4><div class="value" id="wind">—</div><div class="muted" id="windText"></div></div>
-        <div class="card"><h4>Feels Like</h4><div class="value" id="feels">—</div><div class="muted">Relative to wind & humidity</div></div>
-        <div class="card"><h4>Air Quality</h4><div class="value" id="aqi">—</div><div class="muted" id="aqiText"></div></div>
-      </div>
+<div class="stats grid">
 
-      <!-- Forecast -->
-      <div class="card" style="grid-column: span 12;">
-        <div class="section-title">5-Day Forecast</div>
-        <div id="forecast" class="grid five"></div>
-      </div>
+  <!-- Humidity -->
+  <div class="card">
+    <div class="text">
+      <h4>Humidity</h4>
+      <div class="value" id="hum">—</div>
+      <div class="muted" id="humText"></div>
+    </div>
+    <div class="icon">
+      <img src="icons/humidity.svg/humidity.svg" alt="Humidity"/>
+    </div>
+  </div>
+
+<!-- Pressure -->
+<div class="card">
+  <div class="text">
+    <h4>Pressure</h4>
+    <div class="value" id="press">—</div>
+    <div class="muted" id="pressText">Normal pressure</div>
+  </div>
+  <div class="icon">
+    <img src="air.png" alt="Pressure"/>
+  </div>
+</div>
+
+<!-- Visibility -->
+<div class="card">
+  <div class="text">
+    <h4>Visibility</h4>
+    <div class="value" id="vis">—</div>
+    <div class="muted" id="visText"></div>
+  </div>
+  <div class="icon">
+    <img src="cloud.png" alt="Visibility"/>
+  </div>
+</div>
+
+
+
+
+
+  <!-- Wind Speed -->
+  <div class="card">
+    <div class="text">
+      <h4>Wind Speed</h4>
+      <div class="value" id="wind">—</div>
+      <div class="muted" id="windText"></div>
+    </div>
+    <div class="icon">
+      <img src="icons/wind.svg/wind.svg" alt="Wind Speed"/>
+    </div>
+  </div>
+
+ <!-- Feels Like -->
+<div class="card">
+  <div class="text">
+    
+    <div class="value" id="feels">—</div>
+    <div class="muted">Relative to wind & humidity</div>
+  </div>
+</div>
+
+  <!-- Air Quality -->
+  <div class="card">
+    <div class="text">
+      <h4>Air Quality</h4>
+      <div class="value" id="aqi">—</div>
+      <div class="muted" id="aqiText"></div>
+    </div>
+    <div class="icon">
+      <img src="icons/uv-index.svg/uv-index.svg"" alt="Air Quality"/>
+    </div>
+  </div>
+
+</div>
+
+<div class="card" style="grid-column: span 12;">
+  <div class="section-title">5-Day Forecast</div>
+  <div id="forecast" class="grid five"></div>
+</div>
     </section>
   </div>
 
   <script src="script.js"></script>
+
+
 </body>
 </html>

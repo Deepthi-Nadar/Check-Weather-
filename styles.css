@@ -8,6 +8,57 @@
   --gap: 16px;
 }
 
+
+
+
+.details {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 15px;
+  gap: 10px;
+}
+.detail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.1);
+  padding: 6px 10px;
+  border-radius: 10px;
+}
+.detail img {
+  width: 32px;
+  height: 32px;
+}
+.detail div {
+  line-height: 1.2;
+}
+
+
+
+.stats .card {
+  display: flex;
+  flex-direction: row;          /* text left, icon right */
+  justify-content: space-between;
+  align-items: center;
+  height: 110px;
+  padding: 18px;
+}
+.stats .text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.stats .card .icon img {
+  width: 80px;
+  height: 80px;
+  
+}
+
+
+
+
+
+
 *{ box-sizing: border-box }
 html,body{ height:100% }
 body{
@@ -51,7 +102,7 @@ header h1{ margin:0 0 10px; font-weight:800; letter-spacing:.2px; }
 .now .city{ display:flex; align-items:center; gap:8px; font-weight:700; margin-bottom:6px; }
 .now .pin{ opacity:.9 }
 
-.stats .card{ height:110px; display:flex; flex-direction:column; justify-content:center }
+
 .stats h4{ margin:0 0 2px; font-weight:700; font-size:14px }
 .stats .value{ font-size:22px; font-weight:800 }
 
@@ -71,6 +122,33 @@ header h1{ margin:0 0 10px; font-weight:800; letter-spacing:.2px; }
   .stats{ grid-column: span 12; display:grid; grid-template-columns: repeat(12, 1fr); gap:var(--gap) }
   .stats .card{ grid-column: span 4; }
 }
+
+
+
+
+/* Default: 5 columns for larger screens */
+#forecast.grid.five {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+}
+
+/* Tablet: 2 columns */
+@media (max-width: 768px) {
+  #forecast.grid.five {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Mobile: 1 column */
+@media (max-width: 480px) {
+  #forecast.grid.five {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
 
 /* Dynamic themes (JS toggles these) */
 body.theme-clear{ background:linear-gradient(135deg,#1ba1ff,#86e4ff 55%, #d3fbff) }
